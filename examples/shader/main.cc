@@ -13,8 +13,12 @@
 #include "llvm/Support/SourceMgr.h"     // SMDiagnostic
 #include "llvm/Support/raw_ostream.h"
 
+#include <iostream>
+#include <algorithm>
+
 // ISPC related stuff.
-#include "shader.h"
+#include "shader_ispc.h"
+
 
 using namespace llvm;
 
@@ -22,6 +26,93 @@ llvm::ExecutionEngine* gEE;
 typedef void (*shader_proc)(struct ispc::ShadeSample* samples, int32_t n);
 
 shader_proc gShaderFunc;
+
+static bool fequal(float x, float y)
+{
+  if (std::abs(x - y) < 1.0e-6f) {
+    return true;
+  }
+  return false;
+}
+
+static void muda(
+  struct ispc::ShadeSample* env,
+  ispc::float4* org)
+{
+  env->Ci.v[0] = 0.5;
+  org->v[0] = 2.12;
+}
+
+static float trace(
+  struct ispc::ShadeSample* env,
+  ispc::float4* org)
+{
+  printf("env = %p\n", env);
+  printf("env.Cs = %f\n", env->Cs.v[0]);
+  printf("org = %f\n", org->v[0]);
+
+  return 3.0f;
+}
+
+static void *CustomSymbolResolver(const std::string &name)
+{
+    // @todo
+    printf("[Shader] Resolving %s\n", name.c_str());
+    if (name == "trace") {
+        return reinterpret_cast<void*>(trace);
+    } else if (name == "muda") {
+        return reinterpret_cast<void*>(muda);
+    }
+    std::cout << "[Shader] Failed to resolve symbol : " << name << "\n";
+    return NULL;    // fail
+}
+
+static bool
+ExecuteISPC(
+  const char* source_filename)
+{
+  char cmd[4096];
+  // stderr -> stdout redirect.
+  sprintf(cmd, "ispc --emit-llvm %s -h shader.h -o shader.bc 2>&1", source_filename);
+  printf("cmd: %s\n", cmd);
+#if defined(_WIN32)
+  FILE *pfp = _popen(cmd, "r");
+#else
+  FILE *pfp = popen(cmd, "r");
+#endif
+  if (!pfp) {
+    fprintf(stderr, "Failed to popen.\n");
+    return false;
+  }
+
+  std::vector<std::string> logs;
+  char buf[4096];
+  while (fgets(buf, 4095, pfp) != NULL) {
+    logs.push_back(std::string(buf));
+  } 
+
+#if defined(_WIN32)
+  int status = _pclose(pfp);
+#else
+  int status = pclose(pfp);
+#endif
+  printf("status = %d\n", status);
+
+  if (status == -1) {
+    fprintf(stderr, "Failed to close pipe.\n");
+    return false;
+  }
+
+  if (status != 0) {
+    // Compile error.
+    for (size_t i = 0; i < logs.size(); i++) {
+      printf("%s", logs[i].c_str());
+    }
+    return false;
+  }
+
+  return true;
+}
 
 static shader_proc JITCompile(llvm::Module *Mod) {
 
@@ -31,6 +122,9 @@ static shader_proc JITCompile(llvm::Module *Mod) {
     llvm::errs() << "unable to make execution engine: " << Error << "\n";
     return NULL;
   }
+
+  // Install unknown symbol resolver
+  gEE->InstallLazyFunctionCreator(CustomSymbolResolver);
 
   llvm::Function *EntryFn = Mod->getFunction("shader");
   if (!EntryFn) {
@@ -62,10 +156,23 @@ Render(
       ss.Cs.v[1] = y / (float)height;
       ss.Cs.v[2] = 0.0f;
 
+      ss.u = x / (float)width;
+      ss.v = y / (float)height;
+
       ss.Os.v[0] = 1.0f;
       ss.Os.v[1] = 1.0f;
       ss.Os.v[2] = 1.0f;
       ss.Os.v[3] = 1.0f;
+
+      ss.Ci.v[0] = 0.0f;
+      ss.Ci.v[1] = 0.0f;
+      ss.Ci.v[2] = 0.0f;
+      ss.Ci.v[3] = 0.0f;
+
+      ss.Oi.v[0] = 1.0f;
+      ss.Oi.v[1] = 1.0f;
+      ss.Oi.v[2] = 1.0f;
+      ss.Oi.v[3] = 1.0f;
 
       // @todo { Batch call of shader function for better performance. }
       gShaderFunc(&ss, 1);
@@ -131,15 +238,22 @@ main(
 
   LLVMContext& Context = llvm::getGlobalContext();
 
-  std::string input = "shader.bc";
+#if 0
+  std::string input = "shader.ispc";
 
   if (argc > 1) {
     input = std::string(argv[1]);
   }
+
+  bool ret = ExecuteISPC(input.c_str());
+
+  if (!ret) {
+    exit(1);
+  }
+#endif
   
   SMDiagnostic Err;
-
-  Module* M = ParseIRFile(input, Err, Context);
+  Module* M = ParseIRFile("shader.bc", Err, Context);
 
   if (!M) {
     Err.print(argv[0], llvm::errs());

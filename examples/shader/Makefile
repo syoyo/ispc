@@ -3,5 +3,5 @@ CXXFLAGS=$(shell $(LLVM_CONFIG) --cxxflags)
 LLVM_LIBS=$(shell $(LLVM_CONFIG) --ldflags --libs irreader jit interpreter nativecodegen)
 
 all:
-	ispc --emit-llvm shader.ispc -h shader.h -o shader.bc
-	g++ $(CXXFLAGS) main.cc $(LLVM_LIBS)
+	ispc --emit-llvm shader.ispc -h shader_ispc.h -o shader.bc
+	g++-4.8 $(CXXFLAGS) main.cc $(LLVM_LIBS)
