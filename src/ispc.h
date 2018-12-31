@@ -201,7 +201,7 @@ public:
 #ifdef ISPC_NVPTX_ENABLED
         NVPTX,
 #endif
-#ifdef ISPC_ARM_ENABLED
+#if defined(ISPC_ARM_ENABLED) || defined(ISPC_AARCH64_ENABLED)
         NEON32, NEON16, NEON8,
 #endif
         NUM_ISAS

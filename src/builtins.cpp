@@ -865,7 +865,7 @@ AddBitcodeToModule(const unsigned char *bitcode, int length,
         llvm::Triple bcTriple(bcModule->getTargetTriple());
         Debug(SourcePos(), "module triple: %s\nbitcode triple: %s\n",
               mTriple.str().c_str(), bcTriple.str().c_str());
-#if defined(ISPC_ARM_ENABLED) && !defined(__arm__) && !defined(__aarch64__)
+#if (defined(ISPC_ARM_ENABLED) || defined(ISPC_AARCH64_ENABLED)) && !defined(__arm__) && !defined(__aarch64__)
         // FIXME: More ugly and dangerous stuff.  We really haven't set up
         // proper build and runtime infrastructure for ispc to do
         // cross-compilation, yet it's at minimum useful to be able to emit
@@ -889,8 +889,13 @@ AddBitcodeToModule(const unsigned char *bitcode, int length,
         if (g->target->getISA() != Target::NVPTX)
 #endif /* ISPC_NVPTX_ENABLED */
         {
+            // FIXME(syoyo): Work around.
+            // Disable assertion for aarch64 host since m32 build of builtins
+            // are not available.  
+#if !defined(__aarch64__)
             Assert(bcTriple.getArch() == llvm::Triple::UnknownArch ||
                    mTriple.getArch() == bcTriple.getArch());
+#endif
             Assert(bcTriple.getVendor() == llvm::Triple::UnknownVendor ||
                    mTriple.getVendor() == bcTriple.getVendor());
 
@@ -1248,7 +1253,7 @@ DefineStdlib(SymbolTable *symbolTable, llvm::LLVMContext *ctx, llvm::Module *mod
       };
 #endif /* ISPC_NVPTX_ENABLED */
 
-#ifdef ISPC_ARM_ENABLED
+#if defined(ISPC_ARM_ENABLED) || defined(ISPC_AARCH64_ENABLED)
     case Target::NEON8: {
         if (runtime32) {
             EXPORT_MODULE(builtins_bitcode_neon_8_32bit);

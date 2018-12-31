@@ -282,7 +282,7 @@ typedef enum {
     // FIXME: LLVM supports a ton of different ARM CPU variants--not just
     // cortex-a9 and a15.  We should be able to handle any of them that also
     // have NEON support.
-#ifdef ISPC_ARM_ENABLED
+#if defined(ISPC_ARM_ENABLED) || defined(ISPC_AARCH64_ENABLED)
     // ARM Cortex A15. Supports NEON VFPv4.
     CPU_CortexA15,
 
@@ -364,7 +364,7 @@ public:
          names[CPU_SKX].push_back("skx");
 #endif
 
-#ifdef ISPC_ARM_ENABLED
+#if defined(ISPC_ARM_ENABLED) || defined(ISPC_AARCH64_ENABLED)
         names[CPU_CortexA15].push_back("cortex-a15");
 
         names[CPU_CortexA9].push_back("cortex-a9");
@@ -430,7 +430,7 @@ public:
 
         compat[CPU_x86_64]     = Set(CPU_Generic, CPU_x86_64, CPU_None);
 
-#ifdef ISPC_ARM_ENABLED
+#if defined(ISPC_ARM_ENABLED) || defined(ISPC_AARCH64_ENABLED)
         compat[CPU_CortexA15]   = Set(CPU_Generic, CPU_CortexA9, CPU_CortexA15,
                                       CPU_None);
         compat[CPU_CortexA9]    = Set(CPU_Generic, CPU_CortexA9, CPU_None);
@@ -546,7 +546,7 @@ Target::Target(const char *arch, const char *cpu, const char *isa, bool pic, boo
                 break;
 #endif
 
-#ifdef ISPC_ARM_ENABLED
+#if defined(ISPC_ARM_ENABLED) || defined(ISPC_AARCH64_ENABLED)
             case CPU_CortexA9:
             case CPU_CortexA15:
                 isa = "neon-i32x4";
@@ -607,6 +607,11 @@ Target::Target(const char *arch, const char *cpu, const char *isa, bool pic, boo
 #ifdef ISPC_ARM_ENABLED
         if (!strncmp(isa, "neon", 4))
             arch = "arm";
+        else
+#endif
+#ifdef ISPC_AARCH64_ENABLED
+        if (!strncmp(isa, "neon", 4))
+            arch = "aarch64";
         else
 #endif
 #ifdef ISPC_NVPTX_ENABLED
@@ -987,14 +992,18 @@ Target::Target(const char *arch, const char *cpu, const char *isa, bool pic, boo
         CPUfromISA = CPU_SKX;
     }
 #endif
-#ifdef ISPC_ARM_ENABLED
+#if defined(ISPC_ARM_ENABLED) || defined(ISPC_AARCH64_ENABLED)
     else if (!strcasecmp(isa, "neon-i8x16")) {
         this->m_isa = Target::NEON8;
         this->m_nativeVectorWidth = 16;
         this->m_nativeVectorAlignment = 16;
         this->m_dataTypeWidth = 8;
         this->m_vectorWidth = 16;
+#if defined(ISPC_ARM_ENABLED) 
         this->m_attributes = "+neon,+fp16";
+#else
+        this->m_attributes = "+neon";
+#endif
         this->m_hasHalf = true; // ??
         this->m_maskingIsFree = false;
         this->m_maskBitCount = 8;
@@ -1005,7 +1014,11 @@ Target::Target(const char *arch, const char *cpu, const char *isa, bool pic, boo
         this->m_nativeVectorAlignment = 16;
         this->m_dataTypeWidth = 16;
         this->m_vectorWidth = 8;
+#if defined(ISPC_ARM_ENABLED) 
         this->m_attributes = "+neon,+fp16";
+#else
+        this->m_attributes = "+neon";
+#endif
         this->m_hasHalf = true; // ??
         this->m_maskingIsFree = false;
         this->m_maskBitCount = 16;
@@ -1017,7 +1030,11 @@ Target::Target(const char *arch, const char *cpu, const char *isa, bool pic, boo
         this->m_nativeVectorAlignment = 16;
         this->m_dataTypeWidth = 32;
         this->m_vectorWidth = 4;
+#if defined(ISPC_ARM_ENABLED) 
         this->m_attributes = "+neon,+fp16";
+#else
+        this->m_attributes = "+neon";
+#endif
         this->m_hasHalf = true; // ??
         this->m_maskingIsFree = false;
         this->m_maskBitCount = 32;
@@ -1045,7 +1062,7 @@ Target::Target(const char *arch, const char *cpu, const char *isa, bool pic, boo
         error = true;
     }
 
-#if defined(ISPC_ARM_ENABLED) && !defined(__arm__) && !defined(__aarch64__)
+#if (defined(ISPC_ARM_ENABLED) || defined(ISPC_AARCH64_ENABLE)) && !defined(__arm__) && !defined(__aarch64__)
     if ((CPUID == CPU_None) && !strncmp(isa, "neon", 4))
         CPUID = CPU_CortexA9;
 #endif
@@ -1219,6 +1236,9 @@ Target::SupportedArchs() {
 #ifdef ISPC_ARM_ENABLED
         "arm, "
 #endif
+#ifdef ISPC_AARCH64_ENABLED
+        "aarch64, "
+#endif
         "x86, x86-64";
 }
 
@@ -1240,7 +1260,7 @@ Target::SupportedTargets() {
 #endif
         "generic-x1, generic-x4, generic-x8, generic-x16, "
         "generic-x32, generic-x64, *-generic-x16"
-#ifdef ISPC_ARM_ENABLED
+#if defined(ISPC_ARM_ENABLED) || defined(ISPC_AARCH64_ENABLED)
         ", neon-i8x16, neon-i16x8, neon-i32x4"
 #endif
 #ifdef ISPC_NVPTX_ENABLED
@@ -1257,6 +1277,12 @@ Target::GetTripleString() const {
 #ifdef ISPC_ARM_ENABLED
     if (m_arch == "arm") {
         triple.setTriple("armv7-eabi");
+    }
+    else
+#elif ISPC_AARCH64_ENABLED
+    if (m_arch == "aarch64") {
+        // FIXME(syoyo)
+        triple.setTriple("aarch64");
     }
     else
 #endif
@@ -1290,7 +1316,7 @@ Target::GetTripleString() const {
 const char *
 Target::ISAToString(ISA isa) {
     switch (isa) {
-#ifdef ISPC_ARM_ENABLED
+#if defined(ISPC_ARM_ENABLED) || defined(ISPC_AARCH64_ENABLED)
     case Target::NEON8:
         return "neon-8";
     case Target::NEON16:
@@ -1340,7 +1366,7 @@ Target::GetISAString() const {
 const char *
 Target::ISAToTargetString(ISA isa) {
     switch (isa) {
-#ifdef ISPC_ARM_ENABLED
+#if defined(ISPC_ARM_ENABLED) || defined(ISPC_AARCH64_ENABLED)
     case Target::NEON8:
         return "neon-8";
     case Target::NEON16:

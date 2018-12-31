@@ -80,9 +80,10 @@ endfunction()
 function(builtin_to_cpp bit resultFileName)
     set(inputFilePath ${CMAKE_CURRENT_SOURCE_DIR}/builtins/builtins.c)
     set(output ${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_CFG_INTDIR}/builtins-c-${bit}.cpp)
+    # FIXME(syoyo): Only disable -m32 on AARCH64 host build.
     add_custom_command(
         OUTPUT ${output}
-        COMMAND ${CLANG_EXECUTABLE} -m${bit} -emit-llvm -c ${inputFilePath} -o - | \"${LLVM_DIS_EXECUTABLE}\" -
+        COMMAND ${CLANG_EXECUTABLE} -emit-llvm -c ${inputFilePath} -o - | \"${LLVM_DIS_EXECUTABLE}\" -
             | \"${PYTHON_EXECUTABLE}\" ${CMAKE_CURRENT_SOURCE_DIR}/bitcode2cpp.py c ${bit} --llvm_as ${LLVM_AS_EXECUTABLE}
             > ${output}
         DEPENDS ${inputFilePath}
