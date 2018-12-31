@@ -103,7 +103,7 @@ Module *m;
 ///////////////////////////////////////////////////////////////////////////
 // Target
 
-#if !defined(ISPC_IS_WINDOWS) && !defined(__arm__)
+#if !defined(ISPC_IS_WINDOWS) && !defined(__arm__) & !defined(__aarch64__)
 static void __cpuid(int info[4], int infoType) {
     __asm__ __volatile__ ("cpuid"
                           : "=a" (info[0]), "=b" (info[1]), "=c" (info[2]), "=d" (info[3])
@@ -120,7 +120,7 @@ static void __cpuidex(int info[4], int level, int count) {
 }
 #endif // !ISPC_IS_WINDOWS && !__ARM__
 
-#if !defined(__arm__)
+#if !defined(__arm__) && !defined(__aarch64__)
 static bool __os_has_avx_support() {
 #if defined(ISPC_IS_WINDOWS)
     // Check if the OS will save the YMM registers
@@ -155,7 +155,7 @@ static bool __os_has_avx512_support() {
 
 static const char *
 lGetSystemISA() {
-#ifdef __arm__
+#if defined(__arm__) || defined(__aarch64__)
     return "neon-i32x4";
 #else
     int info[4];
@@ -1045,7 +1045,7 @@ Target::Target(const char *arch, const char *cpu, const char *isa, bool pic, boo
         error = true;
     }
 
-#if defined(ISPC_ARM_ENABLED) && !defined(__arm__)
+#if defined(ISPC_ARM_ENABLED) && !defined(__arm__) && !defined(__aarch64__)
     if ((CPUID == CPU_None) && !strncmp(isa, "neon", 4))
         CPUID = CPU_CortexA9;
 #endif

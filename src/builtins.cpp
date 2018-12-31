@@ -865,7 +865,7 @@ AddBitcodeToModule(const unsigned char *bitcode, int length,
         llvm::Triple bcTriple(bcModule->getTargetTriple());
         Debug(SourcePos(), "module triple: %s\nbitcode triple: %s\n",
               mTriple.str().c_str(), bcTriple.str().c_str());
-#if defined(ISPC_ARM_ENABLED) && !defined(__arm__)
+#if defined(ISPC_ARM_ENABLED) && !defined(__arm__) && !defined(__aarch64__)
         // FIXME: More ugly and dangerous stuff.  We really haven't set up
         // proper build and runtime infrastructure for ispc to do
         // cross-compilation, yet it's at minimum useful to be able to emit
