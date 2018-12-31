@@ -33,7 +33,7 @@
 
 #include <stdint.h>
 
-#ifdef __arm__
+#if defined(__arm__) || defined(__aarch64__)
 #include <sys/time.h>
 // There's no easy way to get a hardware clock counter on ARM, so instead
 // we'll pretend it's a 1GHz processor and then compute pretend cycles

@@ -3,12 +3,8 @@ Assume Ubuntu 16.04 aarch64
 
 ```
 $ sudo apt install flex bison autoconf automake libtool
-```
-
-Install armhf(arm 32bit) include files(required to compile 32bit builtin library)
-
-```
-$ sudo apt install libc6-dev-armhf-cross
+$ sudo apt install libtinfo-dev libncurses5-dev
+$ sudo apt install zlib1g-dev
 ```
 
 Install LLVM 4.0.1
@@ -21,6 +17,7 @@ Add path to prebuilt LLVM 4.0.1
 
 
 Pass `AARCH64_ENABLED=On` to cmake
+Set `-DLLVM_DIR` to installed LLVM 4.0.1's cmake dir.
 
 ```
 $ ./scripts/bootstrap-aarch64-native.sh

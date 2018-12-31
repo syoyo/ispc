@@ -144,28 +144,28 @@ define <WIDTH x i32> @__max_varying_uint32(<WIDTH x i32>, <WIDTH x i32>) nounwin
 
 ;; sqrt/rsqrt/rcp
 
-declare <4 x float> @llvm.arm.neon.vrecpe.v4f32(<4 x float>) nounwind readnone
-declare <4 x float> @llvm.arm.neon.vrecps.v4f32(<4 x float>, <4 x float>) nounwind readnone
+declare <4 x float> @llvm.aarch64.neon.frecpe.v4f32(<4 x float>) nounwind readnone
+declare <4 x float> @llvm.aarch64.neon.frecps.v4f32(<4 x float>, <4 x float>) nounwind readnone
 
 define <WIDTH x float> @__rcp_varying_float(<WIDTH x float> %d) nounwind readnone alwaysinline {
-  %x0 = call <4 x float> @llvm.arm.neon.vrecpe.v4f32(<4 x float> %d)
-  %x0_nr = call <4 x float> @llvm.arm.neon.vrecps.v4f32(<4 x float> %d, <4 x float> %x0)
+  %x0 = call <4 x float> @llvm.aarch64.neon.frecpe.v4f32(<4 x float> %d)
+  %x0_nr = call <4 x float> @llvm.aarch64.neon.frecps.v4f32(<4 x float> %d, <4 x float> %x0)
   %x1 = fmul <4 x float> %x0, %x0_nr
-  %x1_nr = call <4 x float> @llvm.arm.neon.vrecps.v4f32(<4 x float> %d, <4 x float> %x1)
+  %x1_nr = call <4 x float> @llvm.aarch64.neon.frecps.v4f32(<4 x float> %d, <4 x float> %x1)
   %x2 = fmul <4 x float> %x1, %x1_nr
   ret <4 x float> %x2
 }
 
-declare <4 x float> @llvm.arm.neon.vrsqrte.v4f32(<4 x float>) nounwind readnone
-declare <4 x float> @llvm.arm.neon.vrsqrts.v4f32(<4 x float>, <4 x float>) nounwind readnone
+declare <4 x float> @llvm.aarch64.neon.frsqrte.v4f32(<4 x float>) nounwind readnone
+declare <4 x float> @llvm.aarch64.neon.frsqrts.v4f32(<4 x float>, <4 x float>) nounwind readnone
 
 define <WIDTH x float> @__rsqrt_varying_float(<WIDTH x float> %d) nounwind readnone alwaysinline {
-  %x0 = call <4 x float> @llvm.arm.neon.vrsqrte.v4f32(<4 x float> %d)
+  %x0 = call <4 x float> @llvm.aarch64.neon.frsqrte.v4f32(<4 x float> %d)
   %x0_2 = fmul <4 x float> %x0, %x0
-  %x0_nr = call <4 x float> @llvm.arm.neon.vrsqrts.v4f32(<4 x float> %d, <4 x float> %x0_2)
+  %x0_nr = call <4 x float> @llvm.aarch64.neon.frsqrts.v4f32(<4 x float> %d, <4 x float> %x0_2)
   %x1 = fmul <4 x float> %x0, %x0_nr
   %x1_2 = fmul <4 x float> %x1, %x1
-  %x1_nr = call <4 x float> @llvm.arm.neon.vrsqrts.v4f32(<4 x float> %d, <4 x float> %x1_2)
+  %x1_nr = call <4 x float> @llvm.aarch64.neon.frsqrts.v4f32(<4 x float> %d, <4 x float> %x1_2)
   %x2 = fmul <4 x float> %x1, %x1_nr
   ret <4 x float> %x2
 }
